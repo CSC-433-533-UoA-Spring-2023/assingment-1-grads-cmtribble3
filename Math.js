@@ -227,3 +227,51 @@ class Vec3 {
         return Math.abs(v.normSq() - 1) < tolerance;
     }
 }
+
+/*
+Datatype for 2x2 Matrix
+ */
+class Mat2 {
+    constructor(a, b, c, d) {
+        this.m = [
+            [a, b],
+            [c, d]
+        ];
+    }
+
+    // Return identity matrix
+    static identity() {
+        return new Mat2(1, 0, 0, 1);
+    }
+
+    // Import matrix from array
+    static fromArray(arr) {
+        return new Mat2(arr[0][0], arr[0][1], arr[1][0], arr[1][1]);
+    }
+
+    // Front multiply the matrix by the input Matrix
+    mMult(other) {
+        return new Mat2(
+            this.m[0][0] * other.m[0][0] + this.m[0][1] * other.m[1][0],
+            this.m[0][0] * other.m[0][1] + this.m[0][1] * other.m[1][1],
+            this.m[1][0] * other.m[0][0] + this.m[1][1] * other.m[1][0],
+            this.m[1][0] * other.m[0][1] + this.m[1][1] * other.m[1][1]
+        );
+    }
+
+    // Front multiply the matrix by the input vector
+    vMult(vec) {
+        return new Vec2(
+            this.m[0][0] * vec.x + this.m[0][1] * vec.y,
+            this.m[1][0] * vec.x + this.m[1][1] * vec.y
+        );
+    }
+
+    // Multiply each matrix element by the input scalar
+    sMult(scalar) {
+        return new Mat2(
+            this.m[0][0] * scalar, this.m[0][1] * scalar,
+            this.m[1][0] * scalar, this.m[1][1] * scalar
+        );
+    }
+}

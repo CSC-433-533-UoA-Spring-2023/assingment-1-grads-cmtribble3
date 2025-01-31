@@ -1,25 +1,23 @@
-Author: {FirstName LastName} [{UA Email}]  
+Author: Charlie Tribble [cmtribble3@arizona.edu]
+Partner: Jefferson Caspary [jcaspary@arizona.edu]
 Course: Grad 533
-Date: [Month]. [Day], 2025
+Date: 1. 31, 2025
 
-**PLEASE UPDATE THIS README TO INCLUDE:**
-* a text description of how to run your program, 
-* document any idiosyncrasies, behaviors, or bugs of note that you want us to be aware of when grading, and
-* any other comments that you feel are relevant.
 
 Executing program:
+
+Open index.html in your preferred web browser. Select the "Choose File" button. Navigate to this folder and open bunny.ppm. Once opened, the image will be cropped to a square and rotate on the screen inside its original bounds. To exit, simply close the tab.
 
 
 Description:
 
 
-Included files (**PLEASE ADD/UPDATE THIS LIST**):
-* index.html    -- a sample html file with a canvas
-* a01.js        -- a sample javascript file for functionality with the image uploading, and a method to parse PPM images
-* Math.js		-- some math functions that you can use and extend yourself
+Included files:
+* index.html    -- main html file to view rotating image
+* a01.js        -- a javascript file for functionality with the image uploading, a method to parse and crop PPM images, calculate transformation matrices, and animate the rotating image.
+* Math.js	-- vector and matrix classes to implement linear algebra transformations
 * bunny.ppm     -- a test image
 
-
-**PLEASE PROVIDE ANY ATTRIBUTION HERE**
+Attributions:
 * Images obtained from the following sources:
   * bunny: http://graphics.stanford.edu/data/3Dscanrep/  

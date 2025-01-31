@@ -12,6 +12,9 @@ var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
 var ppm_img_data;
+var angle = 0; // Rotation angle in degrees
+var intervalTime = 200; // ~60 FPS
+var offscreenCanvas, offscreenCtx;
 
 //Function to process upload
 var upload = function () {
@@ -26,17 +29,10 @@ var upload = function () {
             //if successful, file data has the contents of the uploaded file
             var file_data = fReader.result;
             parsePPM(file_data);
-        }
-
-        /*
-        * TODO: ADD CODE HERE TO DO 2D TRANSFORMATION and ANIMATION
-        * Modify any code if needed
-        * Hint: Write a rotation method, and call WebGL APIs to reuse the method for animation
-        */
-
-
+            startRotation(); // Start animation
+        };
     }
-}
+};
 
 // Load PPM Image to Canvas
 function parsePPM(file_data){
@@ -80,21 +76,104 @@ function parsePPM(file_data){
         // convert raw data byte-by-byte
         bytes[i] = raw_data.charCodeAt(i);
     }
-    // update width and height of canvas
-    document.getElementById("canvas").setAttribute("width", width);
-    document.getElementById("canvas").setAttribute("height", height);
-    // create ImageData object
-    var image_data = ctx.createImageData(width, height);
-    // fill ImageData
-    for(var i = 0; i < image_data.data.length; i+= 4){
-        let pixel_pos = parseInt(i / 4);
-        image_data.data[i + 0] = bytes[pixel_pos * 3 + 0]; // Red ~ i + 0
-        image_data.data[i + 1] = bytes[pixel_pos * 3 + 1]; // Green ~ i + 1
-        image_data.data[i + 2] = bytes[pixel_pos * 3 + 2]; // Blue ~ i + 2
-        image_data.data[i + 3] = 255; // A channel is deafult to 255
+
+    // Crop the image to be a square by removing extra rows or cols of pixels
+    var new_size;
+    var left_trim = 0, right_trim = 0, top_trim = 0, bottom_trim = 0;
+
+    if (width > height) {
+        // Image is wider than it is tall, remove columns
+        new_size = height;
+        var crop_width = width - new_size;
+        left_trim = Math.floor(crop_width / 2);
+        right_trim = crop_width - left_trim;
+    } else {
+        // Image is taller than it is wide or already square, remove rows if needed
+        new_size = width;
+        var crop_height = height - new_size;
+        top_trim = Math.floor(crop_height / 2);
+        bottom_trim = crop_height - top_trim;
     }
-    ctx.putImageData(image_data, canvas.width/2 - width/2, canvas.height/2 - height/2);
-    ppm_img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Create cropped image data
+    var new_bytes = new Uint8Array(3 * new_size * new_size);
+
+    for (var y = 0; y < new_size; y++) {
+        for (var x = 0; x < new_size; x++) {
+            var old_x = x + left_trim;
+            var old_y = y + top_trim;
+            var old_index = (old_y * width + old_x) * 3;
+            var new_index = (y * new_size + x) * 3;
+            new_bytes.set(bytes.subarray(old_index, old_index + 3), new_index);
+        }
+    }
+
+    // Update canvas dimensions
+    document.getElementById("canvas").setAttribute("width", new_size);
+    document.getElementById("canvas").setAttribute("height", new_size);
+
+    // Update image data
+    var image_data = ctx.createImageData(new_size, new_size);
+
+    for (var i = 0; i < image_data.data.length; i += 4) {
+        let pixel_pos = parseInt(i / 4);
+        image_data.data[i + 0] = new_bytes[pixel_pos * 3 + 0]; // red
+        image_data.data[i + 1] = new_bytes[pixel_pos * 3 + 1]; // green
+        image_data.data[i + 2] = new_bytes[pixel_pos * 3 + 2]; // blue
+        image_data.data[i + 3] = 255; // alpha (set to opaque)
+    }
+
+    ctx.putImageData(image_data, canvas.width / 2 - new_size / 2, canvas.height / 2 - new_size / 2);
+    ppm_img_data = ctx.getImageData(0, 0, new_size, new_size);
+
+    // Modify the image in offscreen canonical volume
+    offscreenCanvas = document.createElement("canvas");
+    offscreenCtx = offscreenCanvas.getContext("2d");
+    offscreenCanvas.width = new_size;
+    offscreenCanvas.height = new_size;
+    offscreenCtx.putImageData(image_data, 0, 0);
+}
+
+// Function to compute the rotation matrix using Mat2
+function getTransformMatrix(theta) {
+    // Calculate sine and cosine of input angle (convert input to radians)
+    let cosT = Math.cos(theta * Math.PI / 180);
+    let sinT = Math.sin(theta * Math.PI / 180);
+
+    // Scale matrix
+    let S_mat = Mat2.identity().sMult(1 / (Math.abs(cosT) + Math.abs(sinT)));
+
+    // Rotation matrix
+    let R_mat = new Mat2(
+        cosT, -sinT,
+        sinT, cosT
+    );
+
+    // Return scaled rotation matrix
+    return S_mat.mMult(R_mat);
+}
+
+// Function to start rotation animation
+function startRotation() {
+    setInterval(() => {
+        if (!ppm_img_data) return; // Confirm image is loaded
+
+        angle = (angle + 5) % 360; // Increment angle by 5 degrees
+        let rotationMatrix = getTransformMatrix(angle);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.transform(
+            rotationMatrix.m[0][0], rotationMatrix.m[1][0],
+            rotationMatrix.m[0][1], rotationMatrix.m[1][1],
+            0, 0
+        );
+
+        // Draw image on canvas
+        ctx.drawImage(offscreenCanvas, -ppm_img_data.width / 2, -ppm_img_data.height / 2);
+        ctx.restore();
+    }, intervalTime);
 }
 
 //Connect event listeners
